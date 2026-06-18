@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "AKT8qNOFaLQ=",
+  "success": true,
+  "projectFilePath": "X:\\vs code\\CS\\AutoPrint\\AutoPrint.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Admin\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.2\\communitytoolkit.mvvm.8.4.2.nupkg.sha512",
+    "C:\\Users\\Admin\\.nuget\\packages\\pdfiumviewer.core\\1.0.4\\pdfiumviewer.core.1.0.4.nupkg.sha512"
+  ],
+  "logs": []
+}
