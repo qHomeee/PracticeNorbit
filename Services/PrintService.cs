@@ -19,6 +19,9 @@ namespace AutoPrint.Services
 
         public void PrintFile(string file)
         {
+            if (!File.Exists(file))
+                throw new FileNotFoundException($"Файл не найден: {file}");
+
             string ext = Path.GetExtension(file).ToLowerInvariant();
             switch (ext)
             {
@@ -40,18 +43,20 @@ namespace AutoPrint.Services
                     PrintXlsx(file);
                     break;
                 default:
-                    throw new NotSupportedException($"Unsupported file type: {ext}");
+                    throw new NotSupportedException($"Неподдерживаемый формат: {ext}");
             }
         }
 
         private void PrintImage(string file)
         {
-            PrintDocument pd = new();
+            using var pd = new PrintDocument();
             pd.PrinterSettings.PrinterName = _printer;
+            string capturedFile = file;
             pd.PrintPage += (s, e) =>
             {
-                using var img = Image.FromFile(file);
-                e.Graphics.DrawImage(img, e.MarginBounds);
+                using var img = Image.FromFile(capturedFile);
+                if (e.Graphics != null)
+                    e.Graphics.DrawImage(img, e.MarginBounds);
             };
             pd.Print();
         }
@@ -61,7 +66,7 @@ namespace AutoPrint.Services
             using var document = PdfDocument.Load(file);
             using var printDocument = document.CreatePrintDocument();
             printDocument.PrinterSettings.PrinterName = _printer;
-            printDocument.DocumentName = Path.GetFileName(file);
+            printDocument.DocumentName = System.IO.Path.GetFileName(file);
             printDocument.PrintController = new StandardPrintController();
             printDocument.Print();
         }
@@ -73,44 +78,25 @@ namespace AutoPrint.Services
             try
             {
                 Type wordType = Type.GetTypeFromProgID("Word.Application")
-                    ?? throw new InvalidOperationException("Microsoft Word не установлен или COM-регистрация Word недоступна.");
+                    ?? throw new InvalidOperationException("Microsoft Word не установлен.");
 
                 wordApp = Activator.CreateInstance(wordType)
                     ?? throw new InvalidOperationException("Не удалось запустить Microsoft Word.");
 
-                wordApp.Visible = true;
+                wordApp.Visible = false;
                 wordApp.DisplayAlerts = 0;
                 wordApp.ActivePrinter = _printer;
                 doc = wordApp.Documents.Open(FileName: file, ReadOnly: true, AddToRecentFiles: false);
-                doc.Activate();
-                wordApp.Activate();
-                wordApp.ActiveDocument.PrintOut(Background: false);
+                doc.PrintOut(Background: false);
+
+                int timeout = 60;
+                while (wordApp.BackgroundPrintingStatus > 0 && timeout-- > 0)
+                    System.Threading.Thread.Sleep(1000);
             }
             finally
             {
-                if (doc != null)
-                {
-                    try
-                    {
-                        doc.Close(SaveChanges: false);
-                    }
-                    finally
-                    {
-                        ReleaseComObject(doc);
-                    }
-                }
-
-                if (wordApp != null)
-                {
-                    try
-                    {
-                        wordApp.Quit(SaveChanges: false);
-                    }
-                    finally
-                    {
-                        ReleaseComObject(wordApp);
-                    }
-                }
+                SafeCloseDoc(ref doc);
+                SafeQuitApp(ref wordApp);
             }
         }
 
@@ -121,7 +107,7 @@ namespace AutoPrint.Services
             try
             {
                 Type excelType = Type.GetTypeFromProgID("Excel.Application")
-                    ?? throw new InvalidOperationException("Microsoft Excel не установлен или COM-регистрация Excel недоступна.");
+                    ?? throw new InvalidOperationException("Microsoft Excel не установлен.");
 
                 excelApp = Activator.CreateInstance(excelType)
                     ?? throw new InvalidOperationException("Не удалось запустить Microsoft Excel.");
@@ -134,36 +120,41 @@ namespace AutoPrint.Services
             }
             finally
             {
-                if (wb != null)
-                {
-                    try
-                    {
-                        wb.Close(SaveChanges: false);
-                    }
-                    finally
-                    {
-                        ReleaseComObject(wb);
-                    }
-                }
-
-                if (excelApp != null)
-                {
-                    try
-                    {
-                        excelApp.Quit();
-                    }
-                    finally
-                    {
-                        ReleaseComObject(excelApp);
-                    }
-                }
+                SafeCloseWorkbook(ref wb);
+                SafeQuitApp(ref excelApp);
             }
+        }
+
+        private static void SafeCloseDoc(ref dynamic? doc)
+        {
+            if (doc == null) return;
+            try { doc.Close(SaveChanges: false); } catch { }
+            finally { ReleaseComObject(doc); doc = null; }
+        }
+
+        private static void SafeCloseWorkbook(ref dynamic? wb)
+        {
+            if (wb == null) return;
+            try { wb.Close(SaveChanges: false); } catch { }
+            finally { ReleaseComObject(wb); wb = null; }
+        }
+
+        private static void SafeQuitApp(ref dynamic? app)
+        {
+            if (app == null) return;
+            try { app.Quit(SaveChanges: false); } catch { }
+            finally { ReleaseComObject(app); app = null; }
         }
 
         private static void ReleaseComObject(object? comObject)
         {
-            if (comObject != null && Marshal.IsComObject(comObject))
-                Marshal.FinalReleaseComObject(comObject);
+            if (comObject == null) return;
+            try
+            {
+                if (Marshal.IsComObject(comObject))
+                    Marshal.FinalReleaseComObject(comObject);
+            }
+            catch { }
         }
     }
 }
