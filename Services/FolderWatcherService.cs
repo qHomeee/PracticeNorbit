@@ -4,11 +4,13 @@ using System.Linq;
 
 namespace AutoPrint.Services
 {
-    public class FolderWatcherService
+    public class FolderWatcherService : IDisposable
     {
         private readonly FileSystemWatcher _watcher;
         private readonly PrintQueueService _queue;
         private readonly string _path;
+
+        public string Path => _path;
 
         public FolderWatcherService(string path, PrintQueueService queue)
         {
@@ -34,25 +36,32 @@ namespace AutoPrint.Services
                 .Where(IsSupported);
 
             foreach (var file in files)
-            {
                 _queue.Enqueue(file);
-            }
         }
 
         private void OnCreated(object sender, FileSystemEventArgs e)
         {
             if (IsSupported(e.FullPath))
-            {
                 _queue.Enqueue(e.FullPath);
-            }
         }
 
         private bool IsSupported(string file)
         {
-            string ext = Path.GetExtension(file).ToLower();
-
+            string ext = System.IO.Path.GetExtension(file).ToLowerInvariant();
             return ext is ".jpg" or ".jpeg" or ".png" or ".pdf"
-                        or ".docx" or ".xlsx" or ".xls";
+                        or ".docx" or ".xlsx" or ".xls" or ".xlsm" or ".xlsb";
+        }
+
+        public void Stop()
+        {
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Created -= OnCreated;
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            _watcher?.Dispose();
         }
     }
 }

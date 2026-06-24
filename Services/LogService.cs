@@ -16,7 +16,6 @@ namespace AutoPrint.Services
             lock (_lock)
             {
                 Directory.CreateDirectory("Logs");
-
                 File.AppendAllText(_file,
                     $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{level}] {msg}{Environment.NewLine}");
             }
