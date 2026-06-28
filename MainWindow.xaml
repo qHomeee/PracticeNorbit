@@ -9,6 +9,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -38,10 +39,16 @@
             <TextBlock Name="StatusText" VerticalAlignment="Center" FontWeight="SemiBold" Margin="10,0,0,0"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="3" Margin="0,0,0,2">
+        <StackPanel Grid.Row="3" Margin="0,0,0,10">
+            <CheckBox Name="AutoStartCheckBox" Content="Автоматический режим (фоновый мониторинг без ручного запуска)"
+                      Checked="AutoStartCheckBox_Changed" Unchecked="AutoStartCheckBox_Changed"
+                      Margin="0,0,0,5"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Margin="0,0,0,2">
             <Label Content="Лог:"/>
         </StackPanel>
 
-        <ListBox Grid.Row="4" Name="LogBox" Margin="0,0,0,5"/>
+        <ListBox Grid.Row="5" Name="LogBox" Margin="0,0,0,5"/>
     </Grid>
 </Window>

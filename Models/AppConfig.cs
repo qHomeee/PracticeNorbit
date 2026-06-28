@@ -6,5 +6,6 @@ namespace AutoPrint.Models
     {
         public List<string> WatchFolders { get; set; } = new();
         public string? PrinterName { get; set; }
+        public bool AutoStart { get; set; }
     }
 }

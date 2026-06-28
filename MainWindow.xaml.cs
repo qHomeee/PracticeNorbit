@@ -40,6 +40,12 @@ namespace AutoPrint
         {
             LoadConfig();
             LoadPrinters();
+            
+            if (_config.AutoStart)
+            {
+                AutoStartCheckBox.IsChecked = true;
+                Dispatcher.BeginInvoke(new Action(StartSystem), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         private void LoadConfig()
@@ -51,6 +57,7 @@ namespace AutoPrint
                     if (!_folders.Contains(folder))
                         _folders.Add(folder);
             }
+            AutoStartCheckBox.IsChecked = _config.AutoStart;
         }
 
         private void LoadPrinters()
@@ -297,6 +304,21 @@ namespace AutoPrint
                 {
                     AddLogEntry("Смена принтера требует перезапуска. Нажмите Стоп, затем Старт.");
                 }
+            }
+        }
+
+        private void AutoStartCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            _config.AutoStart = AutoStartCheckBox.IsChecked == true;
+            _configService.Save(_config);
+            
+            if (_config.AutoStart && !_isRunning)
+            {
+                AddLogEntry("Автоматический режим включен");
+            }
+            else if (!_config.AutoStart)
+            {
+                AddLogEntry("Автоматический режим отключен");
             }
         }
 
